@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Extension Boilerplate",
+  "version": "0.1.0",
+  "description": "Basic JavaScript Chrome extension boilerplate.",
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Boilerplate"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "permissions": ["storage", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"]
+    }
+  ]
+}
