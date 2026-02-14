@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Chrome Extension Boilerplate",
-  "version": "0.1.0",
-  "description": "Basic JavaScript Chrome extension boilerplate.",
+  "name": "CrowdTruth",
+  "version": "0.1.0-dev",
+  "description": "Combating misinformation with crowdsourced fact checks.",
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_title": "Boilerplate"
+    "default_title": "CrowdTruth"
   },
   "background": {
     "service_worker": "src/background.js"
