@@ -129,12 +129,17 @@ public class Account {
 			throw new IllegalArgumentException("Invalid Password, Must Contain at least one Lowercase Letter");
 		}
 		
-		//Must has Special Character
+		//Must have Special Character
+		boolean hasSpecial = false;
 		for (int i = 0; i < password.length(); i++) {
 			char c = password.charAt(i);
-			if ("!?@#$%&".indexOf(c) == -1) {
-				throw new IllegalArgumentException("Invalid Password, Must Contain at least one Special Character(!?@#$%&)");
+			if ("!?@#$%&".indexOf(c) != -1) {
+				hasSpecial = true;
+				break;
 			}
+		}
+		if (!hasSpecial) {
+			throw new IllegalArgumentException("Invalid Password, Must Contain at least one Special Character(!?@#$%&)");
 		}
 		
 		this.password = password;
