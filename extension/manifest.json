@@ -3,9 +3,19 @@
   "name": "CrowdTruth",
   "version": "0.1.0",
   "description": "Combating misinformation with crowdsourced fact checks.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_title": "CrowdTruth"
+    "default_title": "CrowdTruth",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "src/background.js"
