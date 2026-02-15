@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CrowdTruth",
-  "version": "0.1.0-dev",
+  "version": "0.1.0",
   "description": "Combating misinformation with crowdsourced fact checks.",
   "action": {
     "default_popup": "src/popup/popup.html",
@@ -10,7 +10,17 @@
   "background": {
     "service_worker": "src/background.js"
   },
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": ["http://localhost:8080/*"],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Open CrowdTruth popup"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

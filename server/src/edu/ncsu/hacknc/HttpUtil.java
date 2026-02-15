@@ -11,12 +11,17 @@ import com.sun.net.httpserver.HttpExchange;
 
 public final class HttpUtil {
 
+    private static final int MAX_REQUEST_SIZE = 1024 * 1024; // 1MB
+
     private HttpUtil() {
     }
 
     public static String readBody(HttpExchange exchange) throws IOException {
         try (InputStream in = exchange.getRequestBody()) {
-            byte[] bytes = in.readAllBytes();
+            byte[] bytes = in.readNBytes(MAX_REQUEST_SIZE + 1);
+            if (bytes.length > MAX_REQUEST_SIZE) {
+                throw new IOException("Request body too large");
+            }
             return new String(bytes, StandardCharsets.UTF_8);
         }
     }

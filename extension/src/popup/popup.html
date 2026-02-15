@@ -8,9 +8,96 @@
   </head>
   <body>
     <main>
-      <h1>Extension Ready</h1>
-      <button id="testBtn">Test</button>
-      <p id="status">Idle</p>
+      <!-- Auth Section -->
+      <div id="authSection">
+        <h2>Sign In</h2>
+        <input type="email" id="email" placeholder="Email" />
+        <input type="password" id="password" placeholder="Password" />
+        <div class="button-row">
+          <button id="loginBtn">Login</button>
+          <button id="registerBtn">Register</button>
+        </div>
+        <p id="authStatus" class="status"></p>
+      </div>
+
+      <!-- Main Section (hidden until logged in) -->
+      <div id="mainSection" style="display: none;">
+        <div class="header">
+          <h1>CrowdTruth</h1>
+          <button id="logoutBtn" class="small">Logout</button>
+        </div>
+
+        <!-- Current URL/Source -->
+        <div class="section">
+          <h3>Current Page</h3>
+          <p id="currentUrl" class="url-display">Loading...</p>
+          <div id="sourceInfo" style="display: none;">
+            <div class="reputation-display">
+              <span class="label">Reputation:</span>
+              <span id="reputationScore" class="score">-</span>
+              <span class="votes">
+                <span id="agreeCount" class="agree">0 agree</span> / 
+                <span id="disagreeCount" class="disagree">0 disagree</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Post Comment Section -->
+        <div class="section">
+          <h3>Add Your Review</h3>
+          <input type="text" id="postTitle" placeholder="Title" />
+          <textarea id="postComment" placeholder="Your comment..." rows="3"></textarea>
+          <button id="submitPostBtn">Post Comment</button>
+          <p id="postStatus" class="status"></p>
+        </div>
+
+        <!-- Vote Section -->
+        <div class="section">
+          <h3>Vote on Existing Posts</h3>
+          <div id="postsList"></div>
+        </div>
+
+        <!-- My Posts Section -->
+        <div class="section">
+          <h3>My Post History</h3>
+          <button id="viewMyPostsBtn" class="small">View My Posts</button>
+          <div id="myPostsList" style="display: none; margin-top: 10px;"></div>
+        </div>
+
+        <!-- Export/Import Data -->
+        <div class="section">
+          <h3>Data Management</h3>
+          <div class="button-row">
+            <button id="exportDataBtn" class="small">Export My Data</button>
+            <button id="importDataBtn" class="small">Import Data</button>
+          </div>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;" />
+          <p id="dataStatus" class="status"></p>
+        </div>
+      </div>
+
+      <!-- Anonymous View -->
+      <div id="anonymousSection" style="display: none;">
+        <h2>View as Anonymous</h2>
+        <p class="info">You can view source reputation, but login to post and vote.</p>
+        <div class="section">
+          <h3>Current Page</h3>
+          <p id="anonUrl" class="url-display">Loading...</p>
+          <div id="anonSourceInfo" style="display: none;">
+            <div class="reputation-display">
+              <span class="label">Reputation:</span>
+              <span id="anonReputationScore" class="score">-</span>
+              <span class="votes">
+                <span id="anonAgreeCount" class="agree">0 agree</span> / 
+                <span id="anonDisagreeCount" class="disagree">0 disagree</span>
+              </span>
+            </div>
+            <div id="anonPostsList"></div>
+          </div>
+        </div>
+        <button id="switchToLoginBtn">Login to Post/Vote</button>
+      </div>
     </main>
     <script src="./popup.js"></script>
   </body>

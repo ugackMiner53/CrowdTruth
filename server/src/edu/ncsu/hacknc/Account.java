@@ -77,7 +77,6 @@ public class Account {
 			throw new IllegalArgumentException("Invalid Email");
 		}
 		
-		//Must have '@' and '.'
 		int at = email.indexOf('@');
 		int dot = email.lastIndexOf('.');
 
@@ -113,7 +112,6 @@ public class Account {
 			throw new IllegalArgumentException("Invalid Password");
 		}
 		
-		//Must have Capital Letter
 		Pattern cap1 = Pattern.compile("[A-Z]");
 		Matcher match1 = cap1.matcher(password);
 		boolean capLetter = match1.find();
@@ -121,7 +119,6 @@ public class Account {
 			throw new IllegalArgumentException("Invalid Password, Must Contain at least one Capitial Letter");
 		}
 		
-		//Must have Lower Case Letter
 		Pattern cap2 = Pattern.compile("[a-z]");
 		Matcher match2 = cap2.matcher(password);
 		boolean lowerLetter = match2.find();
@@ -129,7 +126,6 @@ public class Account {
 			throw new IllegalArgumentException("Invalid Password, Must Contain at least one Lowercase Letter");
 		}
 		
-		//Must have Special Character
 		boolean hasSpecial = false;
 		for (int i = 0; i < password.length(); i++) {
 			char c = password.charAt(i);

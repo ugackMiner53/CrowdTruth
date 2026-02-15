@@ -28,6 +28,9 @@ public class Main {
         server.createContext("/sources", new SourcesHandler());
         server.createContext("/posts", new PostsHandler());
         server.createContext("/votes", new VotesHandler());
+        server.createContext("/users", new UsersHandler());
+        server.createContext("/search", new SearchHandler());
+        server.createContext("/stats", new StatsHandler());
         server.setExecutor(Executors.newFixedThreadPool(8));
         server.start();
 
@@ -37,6 +40,11 @@ public class Main {
     private static class RegisterHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -69,7 +77,7 @@ public class Main {
                 HttpUtil.sendJson(exchange, 201,
                         "{\"ok\":true,\"userId\":" + JsonUtil.quote(id) + "}");
             } catch (Exception e) {
-                HttpUtil.sendJson(exchange, 409, JsonUtil.error("Email or id already exists"));
+                HttpUtil.sendJson(exchange, 409, JsonUtil.error("Registration failed. Email may already be in use."));
             }
         }
     }
@@ -77,6 +85,11 @@ public class Main {
     private static class LoginHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -131,6 +144,11 @@ public class Main {
     private static class SourcesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
             String path = uri.getPath();
@@ -155,10 +173,17 @@ public class Main {
                 Map<String, String> data = JsonUtil.parseObject(body);
                 String url = data.get("url");
                 String title = data.get("title");
-                if (url == null || url.isEmpty()) {
-                    HttpUtil.sendJson(exchange, 400, JsonUtil.error("Missing url"));
+                
+                String urlError = SecurityUtil.validateUrl(url);
+                if (urlError != null) {
+                    HttpUtil.sendJson(exchange, 400, JsonUtil.error(urlError));
                     return;
                 }
+                
+                if (title != null) {
+                    title = SecurityUtil.sanitizeInput(title, 200);
+                }
+                
                 try (Connection conn = Database.getConnection()) {
                     String sourceId = upsertSource(conn, url, title);
                     HttpUtil.sendJson(exchange, 201,
@@ -203,6 +228,11 @@ public class Main {
     private static class PostsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -225,10 +255,29 @@ public class Main {
                 HttpUtil.sendJson(exchange, 400, JsonUtil.error("Missing sourceId or url"));
                 return;
             }
-            if (title == null || comment == null) {
-                HttpUtil.sendJson(exchange, 400, JsonUtil.error("Missing title or comment"));
+            
+            String titleError = SecurityUtil.validateTitle(title);
+            if (titleError != null) {
+                HttpUtil.sendJson(exchange, 400, JsonUtil.error(titleError));
                 return;
             }
+            
+            String commentError = SecurityUtil.validateComment(comment);
+            if (commentError != null) {
+                HttpUtil.sendJson(exchange, 400, JsonUtil.error(commentError));
+                return;
+            }
+            
+            if (url != null) {
+                String urlError = SecurityUtil.validateUrl(url);
+                if (urlError != null) {
+                    HttpUtil.sendJson(exchange, 400, JsonUtil.error(urlError));
+                    return;
+                }
+            }
+            
+            title = SecurityUtil.sanitizeInput(title, 200);
+            comment = SecurityUtil.sanitizeInput(comment, 5000);
 
             try (Connection conn = Database.getConnection()) {
                 if (sourceId == null || sourceId.isEmpty()) {
@@ -257,6 +306,11 @@ public class Main {
     private static class VotesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -312,11 +366,16 @@ public class Main {
         }
         try (Connection conn = Database.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(
-                        "SELECT user_id FROM tokens WHERE token = ?")) {
+                        "SELECT user_id, created_at FROM tokens WHERE token = ?")) {
             stmt.setString(1, token);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {
                     HttpUtil.sendJson(exchange, 401, JsonUtil.error("Invalid token"));
+                    return null;
+                }
+                long createdAt = rs.getLong("created_at");
+                if (SecurityUtil.isTokenExpired(createdAt)) {
+                    HttpUtil.sendJson(exchange, 401, JsonUtil.error("Token expired"));
                     return null;
                 }
                 return rs.getString("user_id");
@@ -450,5 +509,314 @@ public class Main {
         json.append("\"posts\":").append(postsJson);
         json.append("}");
         return json.toString();
+    }
+
+    private static class UsersHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
+            String method = exchange.getRequestMethod();
+            URI uri = exchange.getRequestURI();
+            String path = uri.getPath();
+
+            if ("GET".equalsIgnoreCase(method)) {
+                String[] parts = path.split("/");
+                if (parts.length < 3) {
+                    HttpUtil.sendJson(exchange, 400, JsonUtil.error("Invalid path"));
+                    return;
+                }
+
+                String userId = parts[2];
+                if (parts.length >= 4 && "posts".equals(parts[3])) {
+                    handleGetUserPosts(exchange, userId);
+                } else if (parts.length >= 4 && "stats".equals(parts[3])) {
+                    handleGetUserStats(exchange, userId);
+                } else {
+                    handleGetUserProfile(exchange, userId);
+                }
+                return;
+            }
+
+            HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
+        }
+
+        private void handleGetUserPosts(HttpExchange exchange, String userId) throws IOException {
+            try (Connection conn = Database.getConnection()) {
+                Map<String, String> query = HttpUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+                int limit = JsonUtil.parseInt(query.getOrDefault("limit", "50"));
+                int offset = JsonUtil.parseInt(query.getOrDefault("offset", "0"));
+                
+                if (limit > 100) limit = 100;
+
+                StringBuilder postsJson = new StringBuilder();
+                postsJson.append("[");
+                boolean first = true;
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT p.id, p.source_id, p.title, p.comment, p.created_at, " +
+                        "s.url, s.title AS source_title, " +
+                        "AVG(v.rating) AS avg_rating, " +
+                        "SUM(CASE WHEN v.agree = 1 THEN 1 ELSE 0 END) AS agree_count, " +
+                        "SUM(CASE WHEN v.agree = 0 THEN 1 ELSE 0 END) AS disagree_count " +
+                        "FROM posts p " +
+                        "LEFT JOIN sources s ON s.id = p.source_id " +
+                        "LEFT JOIN votes v ON v.post_id = p.id " +
+                        "WHERE p.user_id = ? " +
+                        "GROUP BY p.id " +
+                        "ORDER BY p.created_at DESC " +
+                        "LIMIT ? OFFSET ?")) {
+                    stmt.setString(1, userId);
+                    stmt.setInt(2, limit);
+                    stmt.setInt(3, offset);
+
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            if (!first) postsJson.append(",");
+                            first = false;
+                            postsJson.append("{");
+                            postsJson.append("\"postId\":").append(JsonUtil.quote(rs.getString("id"))).append(",");
+                            postsJson.append("\"sourceId\":").append(JsonUtil.quote(rs.getString("source_id"))).append(",");
+                            postsJson.append("\"sourceUrl\":").append(JsonUtil.quote(rs.getString("url"))).append(",");
+                            postsJson.append("\"sourceTitle\":").append(JsonUtil.quote(rs.getString("source_title"))).append(",");
+                            postsJson.append("\"title\":").append(JsonUtil.quote(rs.getString("title"))).append(",");
+                            postsJson.append("\"comment\":").append(JsonUtil.quote(rs.getString("comment"))).append(",");
+                            postsJson.append("\"createdAt\":").append(rs.getLong("created_at")).append(",");
+                            postsJson.append("\"rating\":").append(rs.getDouble("avg_rating")).append(",");
+                            postsJson.append("\"agreeCount\":").append(rs.getInt("agree_count")).append(",");
+                            postsJson.append("\"disagreeCount\":").append(rs.getInt("disagree_count"));
+                            postsJson.append("}");
+                        }
+                    }
+                }
+                postsJson.append("]");
+
+                HttpUtil.sendJson(exchange, 200, 
+                    "{\"ok\":true,\"userId\":" + JsonUtil.quote(userId) + 
+                    ",\"posts\":" + postsJson + "}");
+            } catch (Exception e) {
+                HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
+            }
+        }
+
+        private void handleGetUserStats(HttpExchange exchange, String userId) throws IOException {
+            try (Connection conn = Database.getConnection()) {
+                int postCount = 0;
+                int voteCount = 0;
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT COUNT(*) AS count FROM posts WHERE user_id = ?")) {
+                    stmt.setString(1, userId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) postCount = rs.getInt("count");
+                    }
+                }
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT COUNT(*) AS count FROM votes WHERE user_id = ?")) {
+                    stmt.setString(1, userId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) voteCount = rs.getInt("count");
+                    }
+                }
+
+                String json = "{\"ok\":true," +
+                    "\"userId\":" + JsonUtil.quote(userId) + "," +
+                    "\"postCount\":" + postCount + "," +
+                    "\"voteCount\":" + voteCount + "}";
+                HttpUtil.sendJson(exchange, 200, json);
+            } catch (Exception e) {
+                HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
+            }
+        }
+
+        private void handleGetUserProfile(HttpExchange exchange, String userId) throws IOException {
+            try (Connection conn = Database.getConnection()) {
+                String email = null;
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT email FROM users WHERE id = ?")) {
+                    stmt.setString(1, userId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (!rs.next()) {
+                            HttpUtil.sendJson(exchange, 404, JsonUtil.error("User not found"));
+                            return;
+                        }
+                        email = rs.getString("email");
+                    }
+                }
+
+                String json = "{\"ok\":true," +
+                    "\"userId\":" + JsonUtil.quote(userId) + "," +
+                    "\"email\":" + JsonUtil.quote(email) + "}";
+                HttpUtil.sendJson(exchange, 200, json);
+            } catch (Exception e) {
+                HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
+            }
+        }
+    }
+
+    private static class SearchHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
+                return;
+            }
+
+            Map<String, String> query = HttpUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+            String searchQuery = query.get("q");
+            String type = query.getOrDefault("type", "posts");
+            int limit = Math.min(JsonUtil.parseInt(query.getOrDefault("limit", "20")), 50);
+
+            if (searchQuery == null || searchQuery.trim().isEmpty()) {
+                HttpUtil.sendJson(exchange, 400, JsonUtil.error("Missing search query"));
+                return;
+            }
+
+            try (Connection conn = Database.getConnection()) {
+                if ("sources".equals(type)) {
+                    handleSearchSources(exchange, conn, searchQuery, limit);
+                } else {
+                    handleSearchPosts(exchange, conn, searchQuery, limit);
+                }
+            } catch (Exception e) {
+                HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
+            }
+        }
+
+        private void handleSearchPosts(HttpExchange exchange, Connection conn, String searchQuery, int limit) 
+                throws Exception {
+            StringBuilder resultsJson = new StringBuilder();
+            resultsJson.append("[");
+            boolean first = true;
+
+            String pattern = "%" + searchQuery.toLowerCase() + "%";
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "SELECT p.id, p.title, p.comment, p.user_id, p.created_at, s.url, s.title AS source_title " +
+                    "FROM posts p " +
+                    "LEFT JOIN sources s ON s.id = p.source_id " +
+                    "WHERE LOWER(p.title) LIKE ? OR LOWER(p.comment) LIKE ? " +
+                    "ORDER BY p.created_at DESC LIMIT ?")) {
+                stmt.setString(1, pattern);
+                stmt.setString(2, pattern);
+                stmt.setInt(3, limit);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        if (!first) resultsJson.append(",");
+                        first = false;
+                        resultsJson.append("{");
+                        resultsJson.append("\"postId\":").append(JsonUtil.quote(rs.getString("id"))).append(",");
+                        resultsJson.append("\"title\":").append(JsonUtil.quote(rs.getString("title"))).append(",");
+                        resultsJson.append("\"comment\":").append(JsonUtil.quote(rs.getString("comment"))).append(",");
+                        resultsJson.append("\"userId\":").append(JsonUtil.quote(rs.getString("user_id"))).append(",");
+                        resultsJson.append("\"sourceUrl\":").append(JsonUtil.quote(rs.getString("url"))).append(",");
+                        resultsJson.append("\"sourceTitle\":").append(JsonUtil.quote(rs.getString("source_title"))).append(",");
+                        resultsJson.append("\"createdAt\":").append(rs.getLong("created_at"));
+                        resultsJson.append("}");
+                    }
+                }
+            }
+            resultsJson.append("]");
+
+            HttpUtil.sendJson(exchange, 200, 
+                "{\"ok\":true,\"type\":\"posts\",\"results\":" + resultsJson + "}");
+        }
+
+        private void handleSearchSources(HttpExchange exchange, Connection conn, String searchQuery, int limit) 
+                throws Exception {
+            StringBuilder resultsJson = new StringBuilder();
+            resultsJson.append("[");
+            boolean first = true;
+
+            String pattern = "%" + searchQuery.toLowerCase() + "%";
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "SELECT id, url, title FROM sources " +
+                    "WHERE LOWER(url) LIKE ? OR LOWER(title) LIKE ? " +
+                    "LIMIT ?")) {
+                stmt.setString(1, pattern);
+                stmt.setString(2, pattern);
+                stmt.setInt(3, limit);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        if (!first) resultsJson.append(",");
+                        first = false;
+                        resultsJson.append("{");
+                        resultsJson.append("\"sourceId\":").append(JsonUtil.quote(rs.getString("id"))).append(",");
+                        resultsJson.append("\"url\":").append(JsonUtil.quote(rs.getString("url"))).append(",");
+                        resultsJson.append("\"title\":").append(JsonUtil.quote(rs.getString("title")));
+                        resultsJson.append("}");
+                    }
+                }
+            }
+            resultsJson.append("]");
+
+            HttpUtil.sendJson(exchange, 200, 
+                "{\"ok\":true,\"type\":\"sources\",\"results\":" + resultsJson + "}");
+        }
+    }
+
+    private static class StatsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            SecurityUtil.addCorsHeaders(exchange);
+            if (SecurityUtil.handlePreflight(exchange)) {
+                return;
+            }
+            
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
+                return;
+            }
+
+            try (Connection conn = Database.getConnection()) {
+                int totalUsers = 0;
+                int totalSources = 0;
+                int totalPosts = 0;
+                int totalVotes = 0;
+
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM users")) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) totalUsers = rs.getInt("count");
+                    }
+                }
+
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM sources")) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) totalSources = rs.getInt("count");
+                    }
+                }
+
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM posts")) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) totalPosts = rs.getInt("count");
+                    }
+                }
+
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) AS count FROM votes")) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) totalVotes = rs.getInt("count");
+                    }
+                }
+
+                String json = "{\"ok\":true," +
+                    "\"totalUsers\":" + totalUsers + "," +
+                    "\"totalSources\":" + totalSources + "," +
+                    "\"totalPosts\":" + totalPosts + "," +
+                    "\"totalVotes\":" + totalVotes + "}";
+                HttpUtil.sendJson(exchange, 200, json);
+            } catch (Exception e) {
+                HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
+            }
+        }
     }
 }
