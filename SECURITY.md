@@ -29,30 +29,7 @@ stmt.setString(1, token);
 
 ---
 
-## 2. Cross-Origin Resource Sharing (CORS) ✅
-
-**Status:** CONFIGURED
-
-### Implementation:
-- CORS headers added to all API endpoints
-- Supports Chrome extension origins
-- Preflight (OPTIONS) requests handled correctly
-
-### Headers applied:
-```
-Access-Control-Allow-Origin: chrome-extension://*
-Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Authorization
-Access-Control-Max-Age: 3600
-```
-
-### Security utility:
-- `SecurityUtil.addCorsHeaders()` - Adds CORS headers to responses
-- `SecurityUtil.handlePreflight()` - Handles OPTIONS requests
-
----
-
-## 3. Authentication & Authorization ✅
+## 2. Authentication & Authorization ✅
 
 **Status:** SECURED WITH TOKEN EXPIRATION
 
@@ -82,7 +59,7 @@ private static String requireAuth(HttpExchange exchange) throws IOException {
 
 ---
 
-## 4. Input Validation & Sanitization ✅
+## 3. Input Validation & Sanitization ✅
 
 **Status:** COMPREHENSIVE VALIDATION
 
@@ -121,7 +98,7 @@ private static String requireAuth(HttpExchange exchange) throws IOException {
 
 ---
 
-## 5. Request Size Limiting ✅
+## 4. Request Size Limiting ✅
 
 **Status:** PROTECTED AGAINST LARGE PAYLOADS
 
@@ -147,7 +124,7 @@ public static String readBody(HttpExchange exchange) throws IOException {
 
 ---
 
-## 6. Password Security ✅
+## 5. Password Security ✅
 
 **Status:** INDUSTRY-STANDARD HASHING
 
@@ -169,7 +146,7 @@ public static String readBody(HttpExchange exchange) throws IOException {
 
 ---
 
-## 7. Error Message Security ✅
+## 6. Error Message Security ✅
 
 **Status:** INFORMATION LEAKAGE REDUCED
 
@@ -199,7 +176,7 @@ public static String readBody(HttpExchange exchange) throws IOException {
 
 ---
 
-## 8. Security Headers ✅
+## 7. Security Headers ✅
 
 **Status:** BASIC SECURITY HEADERS APPLIED
 
@@ -219,7 +196,7 @@ Content-Security-Policy: default-src 'none'
 
 ---
 
-## 9. Database Security ✅
+## 8. Database Security ✅
 
 **Status:** PROPERLY CONFIGURED
 
@@ -240,7 +217,7 @@ Content-Security-Policy: default-src 'none'
 
 ---
 
-## 10. Known Limitations & Future Improvements
+## 9. Known Limitations & Future Improvements
 
 ### Current limitations:
 
@@ -349,7 +326,6 @@ For security issues or vulnerabilities, please contact:
 ## Changelog
 
 ### February 15, 2026 - Security Audit & Improvements
-- ✅ Added CORS headers to all endpoints
 - ✅ Implemented token expiration (7-day TTL)
 - ✅ Added comprehensive input validation
 - ✅ Added request size limiting (1MB max)
@@ -369,7 +345,6 @@ The CrowdTruth application implements **industry-standard security practices** f
 ✅ **Authentication:** Token-based with expiration  
 ✅ **Input Validation:** Comprehensive validation and sanitization  
 ✅ **Password Security:** PBKDF2-HMAC-SHA256 with 120,000 iterations and unique salts  
-✅ **CORS:** Properly configured for Chrome extension  
 ✅ **Request Limits:** 1MB maximum payload size  
 ✅ **Error Security:** Generic messages prevent information leakage  
 

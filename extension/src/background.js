@@ -1,3 +1,5 @@
+const API_BASE = 'http://localhost:8080';
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log("CrowdTruth extension installed");
   
@@ -11,6 +13,19 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'fetchReputation') {
+    const url = request.url || '';
+    fetch(`${API_BASE}/sources?url=${encodeURIComponent(url)}`)
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        sendResponse({ ok: response.ok, status: response.status, data });
+      })
+      .catch((error) => {
+        sendResponse({ ok: false, status: 0, error: String(error) });
+      });
+    return true;
+  }
+
   if (request.action === 'openPopup') {
     chrome.action.openPopup();
   }

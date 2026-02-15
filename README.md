@@ -103,7 +103,6 @@ Server runs on `http://localhost:8080`
 - SQL injection protection via PreparedStatements
 - Input validation and sanitization on all endpoints
 - Request size limiting (1MB max)
-- CORS headers for secure extension communication
 - Secure local storage for tokens
 
 ## Browser Compatibility

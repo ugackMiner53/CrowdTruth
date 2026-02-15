@@ -23,14 +23,22 @@ function getBadgeColor(reputation) {
 }
 
 async function fetchAndUpdateReputation() {
+  const url = window.location.href;
+
   try {
-    const url = window.location.href;
-    const response = await fetch(`${API_BASE}/sources?url=${encodeURIComponent(url)}`);
-    
-    if (response.ok) {
-      const data = await response.json();
-      updateBadge(data.reputation, data);
-      updateReputationBanner(data);
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'fetchReputation', url }, (result) => {
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, status: 0, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(result || { ok: false, status: 0 });
+        }
+      });
+    });
+
+    if (response.ok && response.data) {
+      updateBadge(response.data.reputation, response.data);
+      updateReputationBanner(response.data);
     } else {
       updateBadge(null, null);
       hideReputationBanner();

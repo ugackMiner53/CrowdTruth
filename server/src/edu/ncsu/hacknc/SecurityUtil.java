@@ -1,6 +1,5 @@
 package edu.ncsu.hacknc;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -16,26 +15,10 @@ public final class SecurityUtil {
     private SecurityUtil() {
     }
 
-    public static void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "chrome-extension://*");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        exchange.getResponseHeaders().add("Access-Control-Max-Age", "3600");
-    }
-
     public static void addSecurityHeaders(HttpExchange exchange) {
         exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
         exchange.getResponseHeaders().add("X-Frame-Options", "DENY");
         exchange.getResponseHeaders().add("Content-Security-Policy", "default-src 'none'");
-    }
-
-    public static boolean handlePreflight(HttpExchange exchange) throws IOException {
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            addCorsHeaders(exchange);
-            exchange.sendResponseHeaders(204, -1);
-            return true;
-        }
-        return false;
     }
 
     public static String sanitizeInput(String input, int maxLength) {

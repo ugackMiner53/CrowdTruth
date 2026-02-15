@@ -393,7 +393,11 @@ function showPostStatus(message, type) {
 async function notifyContentScriptRefresh() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tabs[0]) {
-    chrome.tabs.sendMessage(tabs[0].id, { action: 'refreshReputation' });
+    chrome.tabs.sendMessage(tabs[0].id, { action: 'refreshReputation' }, () => {
+      if (chrome.runtime.lastError) {
+        console.debug('CrowdTruth: No content script on this tab');
+      }
+    });
   }
 }
 

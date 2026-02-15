@@ -40,11 +40,6 @@ public class Main {
     private static class RegisterHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -85,11 +80,6 @@ public class Main {
     private static class LoginHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -144,11 +134,6 @@ public class Main {
     private static class SourcesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
             String path = uri.getPath();
@@ -228,11 +213,6 @@ public class Main {
     private static class PostsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -283,6 +263,7 @@ public class Main {
                 if (sourceId == null || sourceId.isEmpty()) {
                     sourceId = upsertSource(conn, url, title);
                 }
+                long createdAt = Instant.now().toEpochMilli();
                 String postId = UUID.randomUUID().toString();
                 try (PreparedStatement stmt = conn.prepareStatement(
                         "INSERT INTO posts (id, source_id, user_id, title, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)")) {
@@ -291,12 +272,32 @@ public class Main {
                     stmt.setString(3, userId);
                     stmt.setString(4, title);
                     stmt.setString(5, comment);
-                    stmt.setLong(6, Instant.now().toEpochMilli());
+                    stmt.setLong(6, createdAt);
                     stmt.executeUpdate();
                 }
 
+                String sourceUrl = url;
+                String sourceTitle = null;
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT url, title FROM sources WHERE id = ?")) {
+                    stmt.setString(1, sourceId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            sourceUrl = rs.getString("url");
+                            sourceTitle = rs.getString("title");
+                        }
+                    }
+                }
+
                 HttpUtil.sendJson(exchange, 201,
-                        "{\"ok\":true,\"postId\":" + JsonUtil.quote(postId) + ",\"sourceId\":" + JsonUtil.quote(sourceId) + "}");
+                        "{\"ok\":true,\"postId\":" + JsonUtil.quote(postId) +
+                        ",\"sourceId\":" + JsonUtil.quote(sourceId) +
+                        ",\"userId\":" + JsonUtil.quote(userId) +
+                        ",\"title\":" + JsonUtil.quote(title) +
+                        ",\"comment\":" + JsonUtil.quote(comment) +
+                        ",\"createdAt\":" + createdAt +
+                        ",\"sourceUrl\":" + JsonUtil.quote(sourceUrl) +
+                        ",\"sourceTitle\":" + JsonUtil.quote(sourceTitle) + "}");
             } catch (Exception e) {
                 HttpUtil.sendJson(exchange, 500, JsonUtil.error("Server error"));
             }
@@ -306,11 +307,6 @@ public class Main {
     private static class VotesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -514,11 +510,6 @@ public class Main {
     private static class UsersHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
             String path = uri.getPath();
@@ -661,11 +652,6 @@ public class Main {
     private static class SearchHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
@@ -768,11 +754,6 @@ public class Main {
     private static class StatsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            SecurityUtil.addCorsHeaders(exchange);
-            if (SecurityUtil.handlePreflight(exchange)) {
-                return;
-            }
-            
             if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 HttpUtil.sendJson(exchange, 405, JsonUtil.error("Method not allowed"));
                 return;
