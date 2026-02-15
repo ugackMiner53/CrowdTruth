@@ -67,26 +67,32 @@ Server runs on `http://localhost:8080`
 
 ## API Reference
 
-### Authentication
+### Authentication ✅ *Integrated*
 - `POST /auth/register` - Create account (requires: id, email, password)
 - `POST /auth/login` - Get auth token (requires: email, password)
 
-### Sources
+### Sources ✅ *Integrated*
 - `GET /sources?url={url}` - Get reputation data for URL
-- `POST /sources` - Create new source (requires: url, title)
+- `POST /sources` - Create new source (requires: url, title) ⚠️ *Auto-created via posts*
 
-### Posts & Votes
+### Posts & Votes ✅ *Integrated*
 - `POST /posts` - Submit review (requires: url, title, comment, auth)
+  - Returns full post data: postId, sourceId, userId, title, comment, createdAt, sourceUrl, sourceTitle
 - `POST /votes` - Vote on post (requires: postId, agree, rating, auth)
 
-### User Data
-- `GET /users/{id}/posts?limit=50&offset=0` - User's post history
-- `GET /users/{id}/stats` - User statistics (post count, vote count)
-- `GET /users/{id}` - User profile
+### User Data ⚠️ *Partially Integrated*
+- `GET /users/{id}/posts?limit=50&offset=0` - User's post history ✅ *Used*
+- `GET /users/{id}/stats` - User statistics (post count, vote count) 🔮 *Available*
+- `GET /users/{id}` - User profile 🔮 *Available*
 
-### Search & Analytics
-- `GET /search?q={query}&type={posts|sources}&limit=20` - Search
-- `GET /stats` - Platform statistics
+### Search & Analytics 🔮 *Available for Future Features*
+- `GET /search?q={query}&type={posts|sources}&limit=20` - Full-text search across posts and sources
+- `GET /stats` - Platform statistics (total users, sources, posts, votes)
+
+**Legend:**
+- ✅ *Integrated* - Actively used in the extension UI
+- ⚠️ *Partially Integrated* - Some features used, others available
+- 🔮 *Available* - Implemented and tested, ready for UI integration
 
 ## Password Requirements
 
@@ -140,6 +146,12 @@ Educational test project
 
 ## Future Ideas
 
+**Backend Ready (Just Needs UI):**
+- 🎯 Search interface for finding posts and sources by keyword
+- 📊 Statistics dashboard showing platform-wide metrics
+- 👤 User profile page with detailed stats
+
+**Planned Features:**
 - Real-time updates via WebSockets
 - Machine learning for detecting fake news patterns
 - Browser action badge text showing reputation
