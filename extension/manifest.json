@@ -8,7 +8,9 @@
     "default_title": "CrowdTruth"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "scripts":[
+      "src/background.js"
+    ]
   },
   "permissions": ["storage", "activeTab", "tabs"],
   "host_permissions": ["http://localhost:8080/*"],

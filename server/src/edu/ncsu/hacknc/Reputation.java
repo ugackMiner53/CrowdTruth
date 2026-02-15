@@ -6,7 +6,6 @@ import java.util.ArrayList;
  * Reputation for Post
  * 
  * @author Arianna Nugent-Freeman
- * @author
  */
 public class Reputation {
 	
@@ -19,11 +18,10 @@ public class Reputation {
 	/**
 	 * Post position when liked
 	 * 
-	 * @param Account User with Account
+	 * @param user Account user
 	 */
-	public void likePost(String Account) {
-		//POST IS EMPTY, COME BACK TOO ONCE FILLED
-		if (interactedAccount.contains(Account)) {
+	public void likePost(Account user) {
+		if (interactedAccount.contains(user.getId())) {
 			throw new IllegalArgumentException(); // really just return a network call of BAD REQUEST
 		} else {
 			count++;
@@ -34,11 +32,10 @@ public class Reputation {
 	/**
 	 * Post position when disliked
 	 * 
-	 * @param Account User with Account
+	 * @param user Account user
 	 */
-	public void dilikePost(String Account) {
-		//POST IS EMPTY, COME BACK TOO ONCE FILLED
-		if (interactedAccount.contains(Account)) {
+	public void dilikePost(Account user) {
+		if (interactedAccount.contains(user.getId())) {
 			throw new IllegalArgumentException(); // really just return a network call of BAD REQUEST
 		} else {
 			count--;
