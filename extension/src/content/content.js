@@ -1,18 +1,20 @@
-console.log("CrowdTruth: Content script initialized");
+import { hashUrl } from "../api.js";
+import { webext } from "../lib/browser.js";
 
-const API_BASE = 'http://localhost:8080';
-let badge = null;
-let reputationBanner = null;
+// console.log("CrowdTruth: Content script initialized");
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getCurrentUrl') {
-    sendResponse({ url: window.location.href });
-  }
-  if (request.action === 'refreshReputation') {
-    fetchAndUpdateReputation();
-  }
-  return true;
-});
+// let badge = null;
+// let reputationBanner = null;
+
+// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+//   if (request.action === 'getCurrentUrl') {
+//     sendResponse({ url: window.location.href });
+//   }
+//   if (request.action === 'refreshReputation') {
+//     fetchAndUpdateReputation();
+//   }
+//   return true;
+// });
 
 function getBadgeColor(reputation) {
   if (reputation >= 4.0) return '#28a745';
@@ -24,8 +26,7 @@ function getBadgeColor(reputation) {
 
 async function fetchAndUpdateReputation() {
   try {
-    const url = window.location.href;
-    const response = await fetch(`${API_BASE}/sources?url=${encodeURIComponent(url)}`);
+    const response = await fetch(`${API_BASE}/sources?url=${hashUrl(location.host, location.pathname)}`);
     
     if (response.ok) {
       const data = await response.json();
@@ -159,8 +160,19 @@ function hideReputationBanner() {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectIndicator);
-} else {
-  injectIndicator();
+function onHookLoad() {
+  webext.runtime.onMessage.addListener(onServerData);
 }
+
+function onServerData(posts, _sender, _sendResponse) {
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectIndicator);
+  } else {
+    injectIndicator();
+  }
+}
+
+
+export { onHookLoad };
+

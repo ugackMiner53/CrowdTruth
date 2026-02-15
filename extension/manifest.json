@@ -8,10 +8,19 @@
     "default_title": "CrowdTruth"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "scripts": [
+      "src/background.js"
+    ],
+    "type": "module"
   },
-  "permissions": ["storage", "activeTab", "tabs"],
-  "host_permissions": ["http://localhost:8080/*"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:8080/*"
+  ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
@@ -23,8 +32,22 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/content.js"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/content_loader.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "resources": [
+        "src/*"
+      ]
     }
   ]
 }
