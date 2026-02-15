@@ -1,6 +1,8 @@
 import { webext } from "./lib/browser.js";
 import { getPostsFromServer, hashUrl } from "./api.js";
 
+
+const MINIMUM_VISIBLE_REPUTATION = 1;
 // Stores tabId -> reputation number for fast icon switching
 // const tabIdReputation = new Map();
 
@@ -16,32 +18,32 @@ import { getPostsFromServer, hashUrl } from "./api.js";
 //   });
 // });
 
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   if (request.action === 'openPopup') {
-//     chrome.action.openPopup();
-//   }
+webext.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'openPopup') {
+    (webext.browserAction?.openPopup ?? webext.action?.openPopup)();
+  }
   
-//   if (request.action === 'getAuthToken') {
-//     chrome.storage.local.get(['authToken', 'userId'], (result) => {
-//       sendResponse(result);
-//     });
-//     return true;
-//   }
+  // if (request.action === 'getAuthToken') {
+  //   chrome.storage.local.get(['authToken', 'userId'], (result) => {
+  //     sendResponse(result);
+  //   });
+  //   return true;
+  // }
   
-//   if (request.action === 'setAuthToken') {
-//     chrome.storage.local.set({ authToken: request.token, userId: request.userId }, () => {
-//       sendResponse({ ok: true });
-//     });
-//     return true;
-//   }
+  // if (request.action === 'setAuthToken') {
+  //   chrome.storage.local.set({ authToken: request.token, userId: request.userId }, () => {
+  //     sendResponse({ ok: true });
+  //   });
+  //   return true;
+  // }
   
-//   if (request.action === 'clearAuthToken') {
-//     chrome.storage.local.remove(['authToken', 'userId'], () => {
-//       sendResponse({ ok: true });
-//     });
-//     return true;
-//   }
-// });
+  // if (request.action === 'clearAuthToken') {
+  //   chrome.storage.local.remove(['authToken', 'userId'], () => {
+  //     sendResponse({ ok: true });
+  //   });
+  //   return true;
+  // }
+});
 
 // webext.tabs.onActivated.addListener(async (activeInfo) => {
   // Future: Update badge based on current tab reputation
@@ -84,7 +86,7 @@ webext.tabs.onUpdated.addListener(async (tabId, changeInfo, tabInfo) => {
       reputation: -3
     }, {
       text: "This is not true, example.com is technically not registered in this way...",
-      reputation: 10
+      reputation: 1
     }]
 
 
@@ -97,7 +99,7 @@ webext.tabs.onUpdated.addListener(async (tabId, changeInfo, tabInfo) => {
   // There's no point injecting anything if we know that
   // there's not any data on the server.
   console.log(`Checked length of posts, got ${posts.length}`)
-  if (posts.length > 0) {
+  if (posts.length > 0 && posts.some(post => post.reputation >= MINIMUM_VISIBLE_REPUTATION)) {
     setTimeout(() => {
       console.log(`Send posts to ${tabInfo.id}`)
 
