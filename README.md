@@ -9,7 +9,7 @@ CrowdTruth empowers users to rate and review web pages, creating a distributed r
 ## Features
 
 ### Core Functionality
-- **User Authentication** - Secure registration and login with Argon2 password hashing
+- **User Authentication** - Secure registration and login with PBKDF2-HMAC-SHA256 password hashing
 - **Source Reputation** - Aggregated ratings (0-5 stars) based on community feedback
 - **Review System** - Post detailed reviews with titles and comments
 - **Voting Mechanism** - Vote on reviews with agree/disagree and 0-5 star ratings
@@ -35,7 +35,7 @@ CrowdTruth empowers users to rate and review web pages, creating a distributed r
 
 ## Tech Stack
 
-**Backend:** Java 11+, SQLite, SLF4J, Argon2  
+**Backend:** Java 11+, SQLite, SLF4J  
 **Frontend:** Chrome Extension (Manifest V3), Vanilla JavaScript
 
 ## Quick Start
@@ -98,10 +98,12 @@ Server runs on `http://localhost:8080`
 
 ## Security
 
-- Argon2 password hashing with random salts
-- Token-based authentication
+- PBKDF2-HMAC-SHA256 password hashing (120,000 iterations) with random salts
+- Token-based authentication with 7-day expiration
 - SQL injection protection via PreparedStatements
-- Input validation on all endpoints
+- Input validation and sanitization on all endpoints
+- Request size limiting (1MB max)
+- CORS headers for secure extension communication
 - Secure local storage for tokens
 
 ## Browser Compatibility

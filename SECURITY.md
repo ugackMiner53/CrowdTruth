@@ -152,15 +152,18 @@ public static String readBody(HttpExchange exchange) throws IOException {
 **Status:** INDUSTRY-STANDARD HASHING
 
 ### Implementation:
-- **Algorithm:** Argon2id (winner of Password Hashing Competition)
-- **Salt:** Unique random salt per password
+- **Algorithm:** PBKDF2-HMAC-SHA256 (NIST approved)
+- **Iterations:** 120,000 (recommended OWASP minimum is 600,000)
+- **Key length:** 256 bits
+- **Salt:** Unique random 16-byte salt per password (SecureRandom)
 - **Storage:** Hash and salt stored separately in database
 - **No plaintext:** Passwords never stored in plaintext
 
 ### Features:
-- Memory-hard algorithm resistant to GPU/ASIC attacks
-- Configurable time and memory cost parameters
+- Constant-time comparison prevents timing attacks
+- High iteration count increases computational cost for attackers
 - Salt prevents rainbow table attacks
+- Standard Java implementation (javax.crypto.SecretKeyFactory)
 
 **File:** `PasswordUtil.java`
 
@@ -256,10 +259,14 @@ Content-Security-Policy: default-src 'none'
 4. **Password complexity:** Fixed rules, no strength meter
    - Improvement: Add password strength estimation
 
-5. **Audit logging:** No security event logging
+5. **Password hashing iterations:** 120,000 iterations (below OWASP 2023 recommended 600,000)
+   - Risk: Moderate - still computationally expensive but could be improved
+   - Mitigation: Increase ITERATIONS constant in PasswordUtil.java to 600,000+
+
+6. **Audit logging:** No security event logging
    - Improvement: Log authentication attempts, failed requests
 
-6. **Session management:** No concurrent session limits
+7. **Session management:** No concurrent session limits
    - Improvement: Limit number of active sessions per user
 
 ### Recommendations for production:
@@ -350,7 +357,7 @@ For security issues or vulnerabilities, please contact:
 - ✅ Added security utility class (SecurityUtil.java)
 - ✅ Verified SQL injection prevention (all PreparedStatements)
 - ✅ Added security headers (X-Content-Type-Options, X-Frame-Options, CSP)
-- ✅ Documented password security (Argon2id hashing)
+- ✅ Documented password security (PBKDF2-HMAC-SHA256 with 120,000 iterations)
 
 ---
 
@@ -361,7 +368,7 @@ The CrowdTruth application implements **industry-standard security practices** f
 ✅ **SQL Injection:** Protected via PreparedStatements  
 ✅ **Authentication:** Token-based with expiration  
 ✅ **Input Validation:** Comprehensive validation and sanitization  
-✅ **Password Security:** Argon2id hashing with unique salts  
+✅ **Password Security:** PBKDF2-HMAC-SHA256 with 120,000 iterations and unique salts  
 ✅ **CORS:** Properly configured for Chrome extension  
 ✅ **Request Limits:** 1MB maximum payload size  
 ✅ **Error Security:** Generic messages prevent information leakage  
