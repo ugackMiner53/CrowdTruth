@@ -57,6 +57,12 @@ webext.tabs.onUpdated.addListener(async (tabId, changeInfo, tabInfo) => {
 
   changeInfo.url ??= tabInfo.url;
 
+  // temporary so i don't lock myself out of websites
+  if (changeInfo.url != "https://example.com/" && changeInfo.url != "https://developer.mozilla.org/en-US/docs/Web/API/Document/importNode") {
+    console.error("Not example.com, killing!")
+    return;
+  }
+
   // Check to see if that tab is in the cache
   const cache = await webext.storage.local.get("cache");
   const url = new URL(changeInfo.url);
@@ -70,7 +76,19 @@ webext.tabs.onUpdated.addListener(async (tabId, changeInfo, tabInfo) => {
     posts = cache[hashedUrl].posts;
     reputation = cache[hashedUrl].reputation;
   } else {
-    posts = await getPostsFromServer();
+    // posts = await getPostsFromServer();
+    
+    // Mock a response
+    posts = [{
+      text: "There's people in your walls and they love you very much",
+      reputation: -3
+    }, {
+      text: "This is not true, example.com is technically not registered in this way...",
+      reputation: 10
+    }]
+
+
+    
     // const information = await getServerPageInfo(hashedUrl);
     // posts = information.posts;
     // reputation = information.reputation;
@@ -80,7 +98,11 @@ webext.tabs.onUpdated.addListener(async (tabId, changeInfo, tabInfo) => {
   // there's not any data on the server.
   console.log(`Checked length of posts, got ${posts.length}`)
   if (posts.length > 0) {
-    webext.tabs.sendMessage(tabInfo.tabId, { posts: posts });
+    setTimeout(() => {
+      console.log(`Send posts to ${tabInfo.id}`)
+
+      webext.tabs.sendMessage(tabInfo.id, { posts: posts });
+    }, 500)
   }
   
 }, {
