@@ -2,6 +2,12 @@
 
 A browser extension and API platform for crowdsourced fact-checking and reputation tracking of online sources.
 
+## 2 Sentence Summary
+
+A browser extension that allows users to fact check any website by submitting and voting on factual sources.
+
+The extension also creates a score for the website based on how many corrections have been submitted to the site.
+
 ## Overview
 
 CrowdTruth empowers users to rate and review web pages, creating a distributed reputation system for online information. See aggregated reputation scores directly in your browser while browsing.
